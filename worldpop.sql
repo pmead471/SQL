@@ -76,6 +76,7 @@ FROM worldpop
 WHERE region != 'WORLD' and year = 2005
 ORDER BY pop_density DESC
 LIMIT 20
+
 -- Which 5 countries have the highest population for the latest year
 select region, max(total_pop_july_1)
 from worldpop
@@ -84,9 +85,6 @@ GROUP BY region
 ORDER by max(total_pop_july_1) DESC
 LIMIT 10
 -- Which country had the greatest yoy change in births
-
-
--- How could you include the later years as columns
 
 
 -- How to include the year here
