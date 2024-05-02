@@ -1,0 +1,158 @@
+--CREATE TABLE
+
+--INSERT INTO
+
+--1
+
+ SELECT avg(cancelled) * 100::numeric AS avg_cancelled,
+    year
+   FROM flightdata
+  WHERE year >= 1999::numeric AND year <= 2003::numeric
+  GROUP BY year;
+
+--2
+
+ SELECT dayofweek,
+    sum(flightontime) AS countontime,
+    count(flightontime) AS count,
+    round(avg(flightontime) * 100::numeric, 2) AS percentontime
+   FROM ( SELECT flightdata.dayofweek,
+            flightdata.arrdelay,
+                CASE
+                    WHEN flightdata.arrdelay::text = 'NA'::text THEN 0
+                    WHEN flightdata.arrdelay::numeric > 0::numeric THEN 0
+                    ELSE 1
+                END AS flightontime
+           FROM flightdata
+          WHERE flightdata.year = 2007::numeric AND flightdata.dest::text = 'IAH'::text AND flightdata.origin::text = 'MCO'::text) x
+  GROUP BY dayofweek
+  ORDER BY dayofweek;
+
+--3
+
+ SELECT uniquecarrier,
+    flightnum,
+    origin,
+    dest,
+    year,
+    month,
+    dayofmonth,
+    arrdelay
+   FROM flightdata
+  WHERE year = 2004::numeric AND arrdelay::text <> 'NA'::text
+  ORDER BY arrdelay DESC
+ LIMIT 10;
+
+--4
+
+ SELECT year,
+    uniquecarrier,
+    avg(actualelapsedtime::double precision) AS avgaet
+   FROM flightdata
+  WHERE origin::text = 'ORD'::text AND dest::text = 'LAX'::text AND actualelapsedtime::text <> 'NA'::text
+  GROUP BY year, uniquecarrier;
+
+--5
+
+ SELECT uniquecarrier,
+    year,
+    sum(carrierdelay::integer) AS sumcd,
+    sum(actualelapsedtime::integer) AS sumaet,
+    round(sum(carrierdelay::numeric) / sum(actualelapsedtime::numeric), 5) AS ratiocdtoaet
+   FROM flightdata
+  WHERE year > 2001::numeric AND year < 2006::numeric
+  GROUP BY uniquecarrier, year;
+
+--6
+
+ SELECT avg(taxiin::double precision) AS taxiinavg,
+    avg(taxiout::double precision) AS taxioutavg,
+    uniquecarrier
+   FROM flightdata
+  WHERE taxiin::text <> 'NA'::text AND dest::text = 'JFK'::text OR taxiout::text <> 'NA'::text AND origin::text = 'JFK'::text
+  GROUP BY uniquecarrier
+  ORDER BY (avg(taxiout::double precision)) DESC;
+
+--7
+
+ SELECT origin,
+    dest,
+    numberflights,
+    cwd
+   FROM ( SELECT x.origin,
+            x.dest,
+            count(*) AS numberflights,
+            avg(x.chanceweatherdelay) AS cwd
+           FROM ( SELECT flightdata.origin,
+                    flightdata.dest,
+                    flightdata.weatherdelay,
+                        CASE
+                            WHEN flightdata.weatherdelay::integer > 10 THEN 1
+                            ELSE 0
+                        END AS chanceweatherdelay
+                   FROM flightdata
+                  WHERE flightdata.month = 12::numeric AND flightdata.year = 2005::numeric) x
+          GROUP BY x.origin, x.dest) y
+  WHERE numberflights > 20
+  ORDER BY cwd DESC
+ LIMIT 10;
+
+--8
+
+ SELECT year,
+    countarrdelay,
+    numflights,
+    percent,
+    previous,
+    round((percent - previous) / previous, 4) AS yoychange
+   FROM ( SELECT y.year,
+            y.countarrdelay,
+            y.numflights,
+            y.percent,
+            lag(y.percent) OVER (ORDER BY y.year) AS previous
+           FROM ( SELECT x.year,
+                    x.countarrdelay,
+                    x.numflights,
+                    round(x.countarrdelay::numeric / x.numflights::numeric, 4) AS percent
+                   FROM ( SELECT flightdata.year,
+                            sum(
+                                CASE
+                                    WHEN flightdata.arrdelay::text = 'NA'::text THEN 0
+                                    WHEN flightdata.arrdelay::numeric > 0::numeric THEN 0
+                                    ELSE 1
+                                END) AS countarrdelay,
+                            count(flightdata.arrdelay) AS numflights
+                           FROM flightdata
+                          WHERE flightdata.year > 1999::numeric AND flightdata.year < 2008::numeric AND flightdata.uniquecarrier::text = 'WN'::text
+                          GROUP BY flightdata.year) x) y) z;
+
+--9
+
+ SELECT dayofmonth,
+    cad,
+    countnumflights,
+    percent,
+    cumontime,
+    cumnumflights,
+    cumontime / cumnumflights AS cumpercent
+   FROM ( SELECT y.dayofmonth,
+            y.cad,
+            y.countnumflights,
+            y.percent,
+            sum(y.cad) OVER (ORDER BY y.dayofmonth) AS cumontime,
+            sum(y.countnumflights) OVER (ORDER BY y.dayofmonth) AS cumnumflights
+           FROM ( SELECT x.dayofmonth,
+                    x.cad,
+                    x.countnumflights,
+                    x.cad::numeric / x.countnumflights::numeric AS percent
+                   FROM ( SELECT flightdata.dayofmonth,
+                            sum(
+                                CASE
+                                    WHEN flightdata.arrdelay::text = 'NA'::text THEN NULL::integer
+                                    WHEN flightdata.arrdelay::numeric > 0::numeric THEN 0
+                                    ELSE 1
+                                END) AS cad,
+                            count(flightdata.arrdelay) AS countnumflights
+                           FROM flightdata
+                          WHERE flightdata.month = 9::numeric AND flightdata.year = 2005::numeric AND flightdata.uniquecarrier::text = 'UA'::text
+                          GROUP BY flightdata.dayofmonth) x) y) unnamed_subquery;
