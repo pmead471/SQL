@@ -1,5 +1,36 @@
 --CREATE TABLE
-
+CREATE TABLE flightdata
+(
+	year numeric,
+	month numeric,
+	dayofmonth numeric,
+	dayofweek numeric,
+	deptime varchar,
+	crsdeptime varchar,
+	arrtime varchar,
+	crsarrtime varchar,
+	unique_carrier varchar,
+	flightnum int,
+	tailnum varchar,
+	actualelapsedtime varchar,
+	crselapsedtime varchar,
+	airtime varchar,
+	arrdelay varchar,
+	depdelay varchar,
+	origin varchar,
+	dest varchar,
+	distance varchar,
+	taxiin varchar,
+	taxiout varchar,
+	cancelled int,
+	cancellationcode varchar,l
+	diverted int,
+	carrierdelay varchar,
+	weatherdelay varchar,
+	NASDelay varchar,
+	securitydelay varchar,
+	lateaircraftdelay varchar
+)
 --INSERT INTO
 
 --1
