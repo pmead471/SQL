@@ -5,7 +5,7 @@ import psycopg2
 
 DB_NAME = 'flightdata'
 DB_USER = 'postgres'
-DB_PASSWORD = 'Missoula4061!'
+DB_PASSWORD = xxxxxxxxx
 DB_HOST = 'localhost'
 DB_PORT = '5432'
 
