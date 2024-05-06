@@ -129,7 +129,7 @@ WHERE year between 2000 and 2007 and uniquecarrier = 'WN'
 GROUP BY year
 )
 
-SELECT *, (LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)) as previous, (pct_on_time -(LAG(pct_on_time) OVER(ORDER BY year)))/(LAG(pct_on_time) OVER(ORDER BY year)) as yoy_change
+SELECT *, (LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)) as previous, (pct_on_time -(LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)))/(LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)) as yoy_change
 FROM cte
 
 --9
