@@ -92,13 +92,23 @@ GROUP BY year, uniquecarrier
 
 --6
 
- SELECT avg(taxiin::double precision) AS taxiinavg,
-    avg(taxiout::double precision) AS taxioutavg,
-    uniquecarrier
-   FROM flightdata
-  WHERE taxiin::text <> 'NA'::text AND dest::text = 'JFK'::text OR taxiout::text <> 'NA'::text AND origin::text = 'JFK'::text
-  GROUP BY uniquecarrier
-  ORDER BY (avg(taxiout::double precision)) DESC;
+with cte as(
+SELECT uniquecarrier, avg(taxiin) as avg_in
+FROM flightdata
+WHERE dest = 'JFK' and year = 2006
+group by uniquecarrier
+),
+cte2 as(
+SELECT uniquecarrier, avg(taxiout) as avg_out
+FROM flightdata
+WHERE origin = 'JFK' and year = 2006
+group by uniquecarrier
+)
+
+SELECT cte.uniquecarrier, max(cte.avg_in), min(cte.avg_in), max(cte2.avg_out), min(cte2.avg_out)
+FROM cte
+JOIN cte2 ON cte2.uniquecarrier = cte.uniquecarrier
+GROUP BY cte.uniquecarrier
 
 --7
 
