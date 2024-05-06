@@ -102,27 +102,20 @@ GROUP BY year, uniquecarrier
 
 --7
 
- SELECT origin,
-    dest,
-    numberflights,
-    cwd
-   FROM ( SELECT x.origin,
-            x.dest,
-            count(*) AS numberflights,
-            avg(x.chanceweatherdelay) AS cwd
-           FROM ( SELECT flightdata.origin,
-                    flightdata.dest,
-                    flightdata.weatherdelay,
-                        CASE
-                            WHEN flightdata.weatherdelay::integer > 10 THEN 1
-                            ELSE 0
-                        END AS chanceweatherdelay
-                   FROM flightdata
-                  WHERE flightdata.month = 12::numeric AND flightdata.year = 2005::numeric) x
-          GROUP BY x.origin, x.dest) y
-  WHERE numberflights > 20
-  ORDER BY cwd DESC
- LIMIT 10;
+with cte as
+(
+SELECT origin, dest, 
+CASE when arrdelay > 10 THEN 1
+ELSE 0 END as chance_arr_delay
+FROM flightdata
+WHERE year = 2005 and month = 12
+)
+SELECT origin, dest, round(avg(chance_arr_delay)*100,4)
+FROM cte
+GROUP BY origin, dest
+HAVING count(*) > 20
+ORDER BY avg(chance_arr_delay) DESC
+LIMIT 10
 
 --8
 
