@@ -119,60 +119,33 @@ LIMIT 10
 
 --8
 
- SELECT year,
-    countarrdelay,
-    numflights,
-    percent,
-    previous,
-    round((percent - previous) / previous, 4) AS yoychange
-   FROM ( SELECT y.year,
-            y.countarrdelay,
-            y.numflights,
-            y.percent,
-            lag(y.percent) OVER (ORDER BY y.year) AS previous
-           FROM ( SELECT x.year,
-                    x.countarrdelay,
-                    x.numflights,
-                    round(x.countarrdelay::numeric / x.numflights::numeric, 4) AS percent
-                   FROM ( SELECT flightdata.year,
-                            sum(
-                                CASE
-                                    WHEN flightdata.arrdelay::text = 'NA'::text THEN 0
-                                    WHEN flightdata.arrdelay::numeric > 0::numeric THEN 0
-                                    ELSE 1
-                                END) AS countarrdelay,
-                            count(flightdata.arrdelay) AS numflights
-                           FROM flightdata
-                          WHERE flightdata.year > 1999::numeric AND flightdata.year < 2008::numeric AND flightdata.uniquecarrier::text = 'WN'::text
-                          GROUP BY flightdata.year) x) y) z;
+with cte as
+(
+SELECT year, 
+AVG(CASE WHEN arrdelay > 0 THEN 0
+ELSE 1 END) as pct_on_time
+FROM flightdata
+WHERE year between 2000 and 2007 and uniquecarrier = 'WN'
+GROUP BY year
+)
+
+SELECT *, (LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)) as previous, (pct_on_time -(LAG(pct_on_time) OVER(ORDER BY year)))/(LAG(pct_on_time) OVER(ORDER BY year)) as yoy_change
+FROM cte
 
 --9
 
- SELECT dayofmonth,
-    cad,
-    countnumflights,
-    percent,
-    cumontime,
-    cumnumflights,
-    cumontime / cumnumflights AS cumpercent
-   FROM ( SELECT y.dayofmonth,
-            y.cad,
-            y.countnumflights,
-            y.percent,
-            sum(y.cad) OVER (ORDER BY y.dayofmonth) AS cumontime,
-            sum(y.countnumflights) OVER (ORDER BY y.dayofmonth) AS cumnumflights
-           FROM ( SELECT x.dayofmonth,
-                    x.cad,
-                    x.countnumflights,
-                    x.cad::numeric / x.countnumflights::numeric AS percent
-                   FROM ( SELECT flightdata.dayofmonth,
-                            sum(
-                                CASE
-                                    WHEN flightdata.arrdelay::text = 'NA'::text THEN NULL::integer
-                                    WHEN flightdata.arrdelay::numeric > 0::numeric THEN 0
-                                    ELSE 1
-                                END) AS cad,
-                            count(flightdata.arrdelay) AS countnumflights
-                           FROM flightdata
-                          WHERE flightdata.month = 9::numeric AND flightdata.year = 2005::numeric AND flightdata.uniquecarrier::text = 'UA'::text
-                          GROUP BY flightdata.dayofmonth) x) y) unnamed_subquery;
+WITH cte as
+(SELECT dayofmonth, month, 
+ 	cast(concat(month,'/',dayofmonth,'/',2005) as date) as date,
+	AVG(CASE WHEN arrdelay > 0 THEN 0 ELSE 1 END) as pct_on_time
+FROM flightdata
+WHERE year = 2005 and month in (8,9) and uniquecarrier = 'UA'
+GROUP BY month, dayofmonth
+ORDER by month, dayofmonth
+)
+
+SELECT *, 
+	(SELECT AVG(cte2.pct_on_time)
+	FROM cte as cte2
+	WHERE cte2.date between cte.date-30 and cte.date)
+FROM cte
