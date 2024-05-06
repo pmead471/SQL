@@ -76,12 +76,23 @@ CREATE TABLE flightdata
 
 --4
 
- SELECT year,
-    uniquecarrier,
-    avg(actualelapsedtime::double precision) AS avgaet
-   FROM flightdata
-  WHERE origin::text = 'ORD'::text AND dest::text = 'LAX'::text AND actualelapsedtime::text <> 'NA'::text
-  GROUP BY year, uniquecarrier;
+with cte as
+(
+select year, uniquecarrier, avg(actualelapsedtime) as avg_time
+from flightdata
+WHERE origin = 'ORD' and dest = 'LAX'
+GROUP by year, uniquecarrier
+ORDER BY avg(actualelapsedtime) DESC
+),
+cte2 as
+(
+SELECT year, uniquecarrier, min(avg_time) over(partition by year) as min_avg_time
+FROM cte
+)
+SELECT cte.year, cte.uniquecarrier, cte.avg_time
+FROM cte
+JOIN cte2 on cte.year = cte2.year and cte.uniquecarrier = cte2.uniquecarrier
+WHERE cte.avg_time = cte2.min_avg_time
 
 --5
 
