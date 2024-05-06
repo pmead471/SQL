@@ -35,44 +35,33 @@ CREATE TABLE flightdata
 
 --1
 
- SELECT avg(cancelled) * 100::numeric AS avg_cancelled,
-    year
-   FROM flightdata
-  WHERE year >= 1999::numeric AND year <= 2003::numeric
-  GROUP BY year;
+SELECT year, round(avg(cancelled)*100,2) as avg_cancelled
+FROM flightdata
+WHERE year between 1999 and 2003
+GROUP BY year
 
 --2
 
- SELECT dayofweek,
-    sum(flightontime) AS countontime,
-    count(flightontime) AS count,
-    round(avg(flightontime) * 100::numeric, 2) AS percentontime
-   FROM ( SELECT flightdata.dayofweek,
-            flightdata.arrdelay,
-                CASE
-                    WHEN flightdata.arrdelay::text = 'NA'::text THEN 0
-                    WHEN flightdata.arrdelay::numeric > 0::numeric THEN 0
-                    ELSE 1
-                END AS flightontime
-           FROM flightdata
-          WHERE flightdata.year = 2007::numeric AND flightdata.dest::text = 'IAH'::text AND flightdata.origin::text = 'MCO'::text) x
-  GROUP BY dayofweek
-  ORDER BY dayofweek;
+with cte as
+(
+	SELECT dayofweek, arrdelay,
+	CASE WHEN arrdelay > 0 THEN 1
+	ELSE 0 END as arrdelay_pct
+	FROM flightdata
+	WHERE dest = 'IAH' and origin = 'MCO' and year = 2007
+)
+SELECT dayofweek, round(avg(arrdelay_pct)*100,2) as avg_delay
+FROM cte
+GROUP BY dayofweek
+ORDER BY avg(arrdelay_pct) DESC
 
 --3
 
- SELECT uniquecarrier,
-    flightnum,
-    origin,
-    dest,
-    year,
-    month,
-    dayofmonth,
-    arrdelay
-   FROM flightdata
-  WHERE year = 2004::numeric AND arrdelay::text <> 'NA'::text
-  ORDER BY arrdelay DESC
- LIMIT 10;
+SELECT uniquecarrier, flightnum, origin, dest, concat(month,'/',dayofmonth,'/',year) as date,arrtime, crsarrtime, (crsarrtime-arrtime) as diff
+FROM flightdata
+WHERE year = 2004 and arrtime is not null
+ORDER BY diff DESC
+LIMIT 10
 
 --4
 
@@ -96,14 +85,10 @@ WHERE cte.avg_time = cte2.min_avg_time
 
 --5
 
- SELECT uniquecarrier,
-    year,
-    sum(carrierdelay::integer) AS sumcd,
-    sum(actualelapsedtime::integer) AS sumaet,
-    round(sum(carrierdelay::numeric) / sum(actualelapsedtime::numeric), 5) AS ratiocdtoaet
-   FROM flightdata
-  WHERE year > 2001::numeric AND year < 2006::numeric
-  GROUP BY uniquecarrier, year;
+SELECT year, uniquecarrier, round(avg(carrierdelay)/avg(actualelapsedtime),8)*100 as carrier_delay_ratio
+FROM flightdata
+WHERE year between 2002 and 2005 and actualelapsedtime > 0
+GROUP BY year, uniquecarrier
 
 --6
 
