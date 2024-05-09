@@ -64,7 +64,7 @@ SELECT uniquecarrier, flightnum,
 	arrtime, crsarrtime, (crsarrtime-arrtime) as diff
 FROM flightdata
 JOIN city_codes cc on cc.origin = flightdata.origin
-JOIN city_codes cd on cc.origin = flightdata.dest
+JOIN city_codes cd on cd.origin = flightdata.dest
 WHERE year = 2004 and arrtime is not null
 ORDER BY diff DESC
 LIMIT 10
@@ -120,17 +120,17 @@ GROUP BY cte.uniquecarrier
 
 with cte as
 (
-SELECT origin, dest, 
+SELECT flightdata.origin, flightdata.dest, cc.city_name as origin_city, cd.city_name as dest_city,
 CASE when arrdelay > 10 THEN 1
 ELSE 0 END as chance_arr_delay
 FROM flightdata
+JOIN city_codes cc on cc.origin = flightdata.origin
+JOIN city_codes cd on cd.origin = flightdata.dest
 WHERE year = 2005 and month = 12
 )
-SELECT cte.origin, cte.dest, round(avg(chance_arr_delay)*100,4)
+SELECT origin, origin_city, dest, dest_city, round(avg(chance_arr_delay)*100,4)
 FROM cte
-JOIN city_codes cc on cc.origin = cte.origin
-JOIN city_codes cd on cc.origin = cte.dest
-GROUP BY cte.origin, cte.dest
+GROUP BY origin, origin_city, dest, dest_city
 HAVING count(*) > 20
 ORDER BY avg(chance_arr_delay) DESC
 LIMIT 10
