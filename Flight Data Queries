@@ -159,3 +159,20 @@ SELECT *,
 	FROM cte as cte2
 	WHERE cte2.date between cte.date-30 and cte.date)
 FROM cte
+
+--10 Display average arrival delay and average departure delay by airline and year with a join to display the airline name
+
+SELECT year, ac.uniquecarrier, ac.airline, 
+	AVG(arrdelay) avg_ad,
+	AVG(CASE WHEN arrdelay > 0 THEN 1
+	   ELSE 0 END) as pct_arrdelay,
+	AVG(depdelay) as avg_dd,
+	AVG(CASE WHEN depdelay > 0 THEN 1
+	   ELSE 0 END) as pct_depdelay
+FROM flightdata
+JOIN airline_codes ac ON flightdata.uniquecarrier = ac.uniquecarrier
+WHERE ac.uniquecarrier in ('WN', 'AA', 'AS', 'DL', 'UA')
+GROUP BY year, ac.uniquecarrier, ac.airline
+ORDER BY year DESC, 
+	AVG(CASE WHEN arrdelay > 0 THEN 1
+	   ELSE 0 END) DESC
