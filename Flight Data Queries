@@ -31,16 +31,16 @@ CREATE TABLE flightdata
 	securitydelay varchar,
 	lateaircraftdelay varchar
 )
---INSERT INTO
+--Table loaded using the python script
 
---1
+--1 display the percentage of flights that were canceled from 99 to 03
 
 SELECT year, round(avg(cancelled)*100,2) as avg_cancelled
 FROM flightdata
 WHERE year between 1999 and 2003
 GROUP BY year
 
---2
+--2 display the likelihood of a delay when flying from MCO to IAH by day of week in 2007
 
 with cte as
 (
@@ -55,15 +55,21 @@ FROM cte
 GROUP BY dayofweek
 ORDER BY avg(arrdelay_pct) DESC
 
---3
+--3 display the top 10 differences from latest actual to scheduled arrival time in 2004 with joins to show city name
 
-SELECT uniquecarrier, flightnum, origin, dest, concat(month,'/',dayofmonth,'/',year) as date,arrtime, crsarrtime, (crsarrtime-arrtime) as diff
+SELECT uniquecarrier, flightnum, 
+	flightdata.origin, cc.city_name as origin_city, 
+	flightdata.dest, cd.city_name as dest_city, 
+	concat(month,'/',dayofmonth,'/',year) as date, 
+	arrtime, crsarrtime, (crsarrtime-arrtime) as diff
 FROM flightdata
+JOIN city_codes cc on cc.origin = flightdata.origin
+JOIN city_codes cd on cc.origin = flightdata.dest
 WHERE year = 2004 and arrtime is not null
 ORDER BY diff DESC
 LIMIT 10
 
---4
+--4 display, by year, which airline made the trip from ORD to LAX the fastest on average
 
 with cte as
 (
@@ -83,14 +89,14 @@ FROM cte
 JOIN cte2 on cte.year = cte2.year and cte.uniquecarrier = cte2.uniquecarrier
 WHERE cte.avg_time = cte2.min_avg_time
 
---5
+--5 Display the ratio of carrier delay to elapsed travel time for each airline from 02 to 05
 
 SELECT year, uniquecarrier, round(avg(carrierdelay)/avg(actualelapsedtime),8)*100 as carrier_delay_ratio
 FROM flightdata
 WHERE year between 2002 and 2005 and actualelapsedtime > 0
 GROUP BY year, uniquecarrier
 
---6
+--6 display which airline taxied in and out from JFK in 2006 the fastest and slowest
 
 with cte as(
 SELECT uniquecarrier, avg(taxiin) as avg_in
@@ -110,7 +116,7 @@ FROM cte
 JOIN cte2 ON cte2.uniquecarrier = cte.uniquecarrier
 GROUP BY cte.uniquecarrier
 
---7
+--7 display the top 10 routes most likely to have a weather delay of over 10 minutes (minimum 20 trips) in December 2005
 
 with cte as
 (
@@ -120,14 +126,16 @@ ELSE 0 END as chance_arr_delay
 FROM flightdata
 WHERE year = 2005 and month = 12
 )
-SELECT origin, dest, round(avg(chance_arr_delay)*100,4)
+SELECT cte.origin, cte.dest, round(avg(chance_arr_delay)*100,4)
 FROM cte
-GROUP BY origin, dest
+JOIN city_codes cc on cc.origin = cte.origin
+JOIN city_codes cd on cc.origin = cte.dest
+GROUP BY cte.origin, cte.dest
 HAVING count(*) > 20
 ORDER BY avg(chance_arr_delay) DESC
 LIMIT 10
 
---8
+--8 display the yoy change in on time rate from 00 to 07
 
 with cte as
 (
@@ -142,7 +150,7 @@ GROUP BY year
 SELECT *, (LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)) as previous, (pct_on_time -(LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)))/(LAG(pct_on_time,1,pct_on_time) OVER(ORDER BY year)) as yoy_change
 FROM cte
 
---9
+--9 display the month to date on time arrival rate for United in September 2005
 
 WITH cte as
 (SELECT dayofmonth, month, 
