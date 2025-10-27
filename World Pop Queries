@@ -122,7 +122,6 @@ FROM worldpop
 WHERE year = 2021
 ORDER BY pop_density DESC
 
--- window function, what am I doing not sure
 select region, max(total_pop_july_1) over(partition by region)
 FROM worldpop
 WHERE type = 'Country/Area'
@@ -142,7 +141,6 @@ SELECT *
 FROM cte
 Order by total_pop_july_1 DESC
 
--- Contributing factors to life expectancy?
 -- Population Density, pop_sex_ration, median_age_years, population_growth_rate
 
 WITH cte as (
@@ -164,12 +162,9 @@ SELECT region, life_expectancy, pop_density
 FROM worldpop
 WHERE pop_density IS NOT NULL
 
--- Window Function?
 -- What is the yoy change in population from 1970-1980 for Ireland
 SELECT year, total_pop_july_1, 
 round((cast(total_pop_july_1 as decimal) - lag(cast(total_pop_july_1 as decimal),1, total_pop_july_1) over (order by year))/cast(total_pop_july_1 as decimal) * 100,5) as yoy_change
 FROM worldpop
 WHERE region = 'Ireland'
-
--- Self Join
 
