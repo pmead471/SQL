@@ -1,3 +1,5 @@
+# the following code was used to load a sample of data into a postgreSQL database using python
+
 import pandas as pd
 from sqlalchemy import create_engine
 import os
